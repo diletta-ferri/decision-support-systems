@@ -1,0 +1,44 @@
+--Ass. 1
+select [Measures].[Crime Gravity] on columns,
+nonempty(
+	generate(
+		[Geography].[Hierarchy].[Country],
+		topcount(
+		([Geography].[Country].currentmember,[Geography].[City].[City]), 
+		1, [Measures].[Crime Gravity]
+		)
+	)
+) on rows 
+from [Group_ID_31_CUBE]
+
+
+--Ass. 2
+with 
+  member avg_crime_gravity as
+    avg(
+	([Geography].[Country].currentmember, [Incident].[Incident Id].[Incident Id]), 
+	[Measures].[Crime Gravity]
+	)
+
+  member ratio as
+    iif( 
+	avg_crime_gravity is NULL or avg_crime_gravity = 0, 
+	0, 
+	[Measures].[Crime Gravity] / avg_crime_gravity
+	)
+
+select head( order([Incident].[Incident Id].[Incident Id], ratio, DESC), 1) on columns,
+[Geography].[Country].[Country] on rows 
+from [Group_ID_31_CUBE]
+
+
+--Ass. 3
+with 
+	member difference as
+		([Date].[DateHierarchy].currentmember, [Measures].[Crime Gravity]) - 
+		([Date].[DateHierarchy].currentmember.lag(1), [Measures].[Crime Gravity])
+
+select ([Date].[Year].[Year], [Date].[DateHierarchy].[Quarter].members, difference) on columns,
+nonempty([Geography].[Hierarchy].[City]) on rows
+from [Group_ID_31_CUBE]
+
